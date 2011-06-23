@@ -255,7 +255,7 @@ sub _select_root {
 # //
 # anywhere in the tree
 sub _select_anywhere {
-        my ($self, $step, $current_points, $lookahead, $new_points) = @_;
+        my ($self, $step, $current_points, $new_points, $lookahead ) = @_;
 
         # speed optimization: only useful points added
         my $lookahead_key;
@@ -416,6 +416,17 @@ sub isearch
         $self->_search(Data::DPath::Path->new(path => $path_str))->_iter;
 }
 
+our %_select_dispatch_table = (
+	'ROOT' => \&_select_root,
+	'ANYWHERE' => \&_select_anywhere,
+	'KEY' => \&_select_key,
+	'ANYSTEP' => \&_select_anystep,
+	'NOSTEP' => \&_select_nostep,
+	'PARENT' => \&_select_parent,
+	'ANCESTOR' => \&_select_ancestor,
+	'ANCESTOR_OR_SELF' => \&_select_ancestor_or_self,
+);
+
 sub _search
 {
         my ($self, $dpath) = @_;
@@ -430,38 +441,7 @@ sub _search
                 my $lookahead = $steps->[$i+1];
                 my $new_points = [];
 
-                if ($step->kind eq ROOT)
-                {
-                        $self->_select_root($step, $current_points, $new_points);
-                }
-                elsif ($step->kind eq ANYWHERE)
-                {
-                        $self->_select_anywhere($step, $current_points, $lookahead, $new_points);
-                }
-                elsif ($step->kind eq KEY)
-                {
-                        $self->_select_key($step, $current_points, $new_points);
-                }
-                elsif ($step->kind eq ANYSTEP)
-                {
-                        $self->_select_anystep($step, $current_points, $new_points);
-                }
-                elsif ($step->kind eq NOSTEP)
-                {
-                        $self->_select_nostep($step, $current_points, $new_points);
-                }
-                elsif ($step->kind eq PARENT)
-                {
-                        $self->_select_parent($step, $current_points, $new_points);
-                }
-                elsif ($step->kind eq ANCESTOR)
-                {
-                        $self->_select_ancestor($step, $current_points, $new_points);
-                }
-                elsif ($step->kind eq ANCESTOR_OR_SELF)
-                {
-                        $self->_select_ancestor_or_self($step, $current_points, $new_points);
-                }
+                $_select_dispatch_table{$step->kind}->($self,$step, $current_points, $new_points, $lookahead);
                 $current_points = $new_points;
         }
         $self->current_points( $current_points );
